@@ -10,7 +10,7 @@ The goal of this module is to teach you how to write code for the firmware that 
       ```
   2. Clone and move into the fw-onboarding repository.
        ```bash
-       git clone git@github.com:Queens-Rocket-Engineering-Team/fw-onboarding.git
+       git clone https://github.com/Queens-Rocket-Engineering-Team/fw-onboarding.git
        cd fw-onboarding
        ```
   3. Next, create a branch off of main, this will be where your altimeter code lives.
@@ -20,7 +20,7 @@ The goal of this module is to teach you how to write code for the firmware that 
       git switch main && git pull
       git switch -b yournamefirst-last
       ```
-2. Now, make a file called "altimeter_module.ino", or something similar (keeping the .ino suffix.)
+2. Now, make a file called "altimeter_module.c", or something similar (keeping the .c suffix.)
 3. Given the resources below, create the altimeter code with a real time operating system! The main requirement is it needs to calculate the current altitude live.
 
 Some suggestions for steps:
