@@ -17,8 +17,8 @@ The goal of this module is to teach you how to write code for the firmware that 
     1. Ensure you are in the Avionics team so you have permission to make branches. If you are not, ask any of the current Avionics leads.
     2. Ensure you are on main and then create a new branch with your name in the format "first-last".
       ```bash
-      git checkout main && git pull
-      git checkout -b yournamefirst-last
+      git switch main && git pull
+      git switch -c yournamefirst-last
       ```
 2. Now, make a file called "altimeter_module.ino", or something similar (keeping the .ino suffix.)
 3. Given the resources below, create the altimeter code with a real time operating system! The main requirement is it needs to calculate the current altitude live.
