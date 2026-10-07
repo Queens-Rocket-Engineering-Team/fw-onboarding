@@ -1,0 +1,10 @@
+/build/
+/.tools/
+/CMakeUserPresets.json
+/.cache/
+/compile_commands.json
+*.log
+/EWARM/List/
+/EWARM/Obj/
+/EWARM/Exe/
+/EWARM/settings/

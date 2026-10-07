@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ThreadX: ST-LINK",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "origin": "snippet",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "deviceName": "STM32F103CB",
+            "deviceCore": "Cortex-M3",
+            "serverInterface": "SWD",
+            "serverInterfaceFrequency": "1000",
+            "serverReset": "Connect under reset",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+                }
+            ],
+            "serverRtos": {
+                "enabled": true,
+                "port": "60000",
+                "driver": "threadx",
+                "driverPort": "cortex_m3"
+            }
+        }
+    ]
+}
