@@ -1,0 +1,599 @@
+/***************************************************************************/
+/* Copyright (c) 2024 Microsoft Corporation                                */
+/* Copyright (c) 2026 Eclipse ThreadX contributors                         */
+/*                                                                         */
+/* This program and the accompanying materials are made available under    */
+/* the terms of the MIT License which is available at                      */
+/* https://opensource.org/licenses/MIT.                                    */
+/*                                                                         */
+/* SPDX-License-Identifier: MIT                                            */
+/***************************************************************************/
+
+// Portions of this file were generated with AI assistance.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+/* MISRA C:2012 Rule 21.3 and Dir 4.12 deviation: dynamic memory is used in this
+   file. This is a host-side conversion utility executed on the development
+   machine, not ThreadX runtime code, and the ELF areas being read have sizes
+   that are only known at run time. Every allocation result is checked for NULL
+   and every buffer is released before its pointer is reused.  */
+
+/* MISRA C:2012 Rule 15.5 (advisory) deviation: main() returns from several
+   error paths instead of having a single point of exit. The project forbids
+   goto, so an early return is the only way to abandon the conversion, and this
+   matches the style already used by the parameter and file open checks.  */
+
+
+/* Define the file handles.  */
+
+FILE	*source_file;
+FILE    *array_file;
+
+
+#define ELF_ID_STRING_SIZE	    16
+#define ELF_ARM_MACHINE_TYPE    40
+#define ELF_EXECUTABLE          2
+
+
+typedef struct ELF_HEADER_STRUCT
+{
+    unsigned char   elf_header_id_string[ELF_ID_STRING_SIZE];
+    unsigned short  elf_header_file_type;
+    unsigned short  elf_header_machinge_type;
+    unsigned long   elf_header_version;
+    unsigned long   elf_header_entry_address;
+    unsigned long   elf_header_program_header_offset;
+    unsigned long   elf_header_section_header_offset;
+    unsigned long   elf_header_processor_flags;
+    unsigned short  elf_header_size;
+    unsigned short  elf_header_program_header_size;
+    unsigned short  elf_header_program_header_entries;
+    unsigned short  elf_header_section_header_size;
+    unsigned short  elf_header_section_header_entries;
+    unsigned short  elf_header_section_string_index;
+} ELF_HEADER;
+
+
+typedef struct ELF_PROGRAM_HEADER_STRUCT
+{
+    unsigned long   elf_program_header_type;
+    unsigned long   elf_program_header_offset;
+    unsigned long   elf_program_header_virtual_address;
+    unsigned long   elf_program_header_physical_address;
+    unsigned long   elf_program_header_file_size;
+    unsigned long   elf_program_header_memory_size;
+    unsigned long   elf_program_header_flags;
+    unsigned long   elf_program_header_alignment;
+} ELF_PROGRAM_HEADER;
+
+
+typedef struct ELF_SECTION_HEADER_STRUCT
+{
+    unsigned long   elf_section_header_name;
+    unsigned long   elf_section_header_type;
+    unsigned long   elf_section_header_flags;
+    unsigned long   elf_section_header_address;
+    unsigned long   elf_section_header_offset;
+    unsigned long   elf_section_header_size;
+    unsigned long   elf_section_header_link;
+    unsigned long   elf_section_header_info;
+    unsigned long   elf_section_header_alignment;
+    unsigned long   elf_section_header_entry_size;
+} ELF_SECTION_HEADER;
+
+
+typedef struct ELF_SYMBOL_TABLE_ENTRY_STRUCT
+{
+    unsigned long   elf_symbol_table_entry_name;
+    unsigned long   elf_symbol_table_entry_address;
+    unsigned long   elf_symbol_table_entry_size;
+    unsigned char   elf_symbol_table_entry_info;
+    unsigned char   elf_symbol_table_entry_other;
+    unsigned short  elf_symbol_table_entry_shndx;
+
+} ELF_SYMBOL_TABLE_ENTRY;
+
+
+typedef struct CODE_SECTION_ENTRY_STRUCT
+{
+    unsigned long   code_section_index;
+    unsigned long   code_section_address;
+    unsigned long   code_section_size;
+} CODE_SECTION_ENTRY;
+
+
+/* Define global variables.  */
+
+ELF_HEADER              header;
+ELF_PROGRAM_HEADER      *program_header;
+ELF_SECTION_HEADER      *section_header;
+unsigned char           *section_string_table;
+unsigned char           *main_string_table;
+unsigned long           total_symbols;
+ELF_SYMBOL_TABLE_ENTRY  *symbol_table;
+unsigned long           total_functions;
+ELF_SYMBOL_TABLE_ENTRY  *function_table;
+CODE_SECTION_ENTRY		*code_section_array;
+
+
+/* Define helper functions.  */
+
+int elf_object_read(unsigned long offset, void *object_address, int object_size)
+{
+
+int             i;
+int             alpha;
+unsigned char   *buffer;
+
+    /* Setup the buffer pointer.  */
+    buffer =  (unsigned char *) object_address;
+
+    /* Seek to the proper position in the file.  */
+    fseek(source_file, offset, SEEK_SET);
+
+    /* Read the ELF object.  */
+    for (i = 0; i < object_size; i++)
+    {
+        alpha =  fgetc(source_file);
+
+        if (alpha == EOF)
+            return(1);
+
+        buffer[i] =  (unsigned char) alpha;
+    }
+
+    /* Return success.  */
+    return(0);
+}
+
+
+/* Close the files and release the ELF areas allocated by main(). This is called
+   from every exit path taken after the files have been opened, so it must
+   tolerate being called with resources that were never acquired. The areas it
+   releases are the file scope pointers declared above.  */
+
+static void converter_cleanup(void)
+{
+
+    /* Determine if the source file is open.  */
+    if (source_file != NULL)
+    {
+
+        /* Close it.  */
+        fclose(source_file);
+        source_file =  NULL;
+    }
+
+    /* Determine if the C array output file is open.  */
+    if (array_file != NULL)
+    {
+
+        /* Close it.  */
+        fclose(array_file);
+        array_file =  NULL;
+    }
+
+    /* Release the ELF areas. Note that free() is defined to do nothing when it
+       is supplied a NULL pointer, so no test is required here.  */
+    free(program_header);
+    program_header =  NULL;
+    free(section_header);
+    section_header =  NULL;
+    free(section_string_table);
+    section_string_table =  NULL;
+    free(code_section_array);
+    code_section_array =  NULL;
+}
+
+
+int main(int argc, char* argv[])
+{
+
+unsigned long           i, j, k;
+unsigned long           address;
+unsigned long           size;
+unsigned long           allocation_size;
+unsigned long           column;
+unsigned char           *code_buffer;
+unsigned long			code_section_index;
+CODE_SECTION_ENTRY		code_section_temp;
+
+
+    /* Determine if the proper number of files are provided.  */
+    if (argc != 3)
+    {
+
+        /* Print an error message out and wait for user key hit.  */
+		printf("module_to_c_array\n");
+		printf("(c) 2024 Microsoft Corp\n");
+		printf("(c) 2026 Eclipse ThreadX contributors\n");
+		printf("v6.5.2.202603\n");
+        printf("**** Error: invalid input parameter for module_to_c_array **** \n");
+        printf("     Command Line Should be:\n\n");
+        printf("     > module_to_c_array source_elf_file c_array_file <cr> \n\n");
+        return(1);
+    }
+
+    /* Attempt to open the source file for reading.  */
+    source_file =  fopen(argv[1], "rb");
+
+    /* Determine if the source file was opened properly.  */
+    if (source_file == NULL)
+    {
+
+        /* Print an error message out and wait for user key hit.  */
+        printf("**** Error: open failed on source elf file **** \n");
+        printf("            File: %s   ", argv[1]);
+        return(2);
+    }
+
+    /* Attempt to open the dump file for writing.  */
+    array_file =  fopen(argv[2], "w");
+
+    /* Determine if the dump file was opened properly.  */
+    if (array_file == NULL)
+    {
+
+        /* Print an error message out and wait for user key hit.  */
+        printf("**** Error: open failed on C array file **** \n");
+        printf("            File: %s   ", argv[2]);
+        return(3);
+    }
+
+    /* Read the ELF header.  */
+    if (elf_object_read(0, &header, sizeof(header)) != 0)
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: read failed on the ELF header **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(6);
+    }
+
+    fprintf(array_file, "/**************************** Module-to-C-array Utility *****************************************/\n");
+	fprintf(array_file, "/*                                                                                              */\n");
+	fprintf(array_file, "/* Copyright (c) 2024 Microsoft Corp                                                            */\n");
+	fprintf(array_file, "/* Copyright (c) 2026 Eclipse ThreadX contributors                                              */\n");
+	fprintf(array_file, "/* v6.5.2.202603                                                                                */\n");
+	fprintf(array_file, "/*                                                                                              */\n");
+	fprintf(array_file, "/************************************************************************************************/\n\n");
+    fprintf(array_file, "/* \n");
+	fprintf(array_file, "   Input ELF file:      %30s\n", argv[1]);
+	fprintf(array_file, "   Output C Array file: %30s\n", argv[2]);
+	fprintf(array_file, "*/\n\n");
+
+    /* Allocate memory for the program header(s).  */
+    allocation_size =  sizeof(ELF_PROGRAM_HEADER)*header.elf_header_program_header_entries;
+    program_header =   malloc(allocation_size);
+
+    /* Determine if the memory allocation was successful. Note that an empty area
+       is not an error, since malloc() is permitted to return NULL for it.  */
+    if ((program_header == NULL) && (allocation_size != 0))
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: memory allocation failed for the program header(s) **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(5);
+    }
+
+    /* Read the program header(s).  */
+    if (elf_object_read(header.elf_header_program_header_offset, program_header, allocation_size) != 0)
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: read failed on the program header(s) **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(6);
+    }
+
+    /* Allocate memory for the section header(s).  */
+    allocation_size =  sizeof(ELF_SECTION_HEADER)*header.elf_header_section_header_entries;
+    section_header =   malloc(allocation_size);
+
+    /* Determine if the memory allocation was successful.  */
+    if ((section_header == NULL) && (allocation_size != 0))
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: memory allocation failed for the section header(s) **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(5);
+    }
+
+    /* Read the section header(s).  */
+    if (elf_object_read(header.elf_header_section_header_offset, section_header, allocation_size) != 0)
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: read failed on the section header(s) **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(6);
+    }
+
+    /* Determine if the section string table index supplied by the ELF header is
+       inside the section header area that was just read.  */
+    if (header.elf_header_section_string_index >= header.elf_header_section_header_entries)
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: invalid section string table index in the ELF header **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(6);
+    }
+
+    /* Alocate memory for the section string table.  */
+    allocation_size =       section_header[header.elf_header_section_string_index].elf_section_header_size;
+    section_string_table =  malloc(allocation_size);
+
+    /* Determine if the memory allocation was successful.  */
+    if ((section_string_table == NULL) && (allocation_size != 0))
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: memory allocation failed for the section string table **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(5);
+    }
+
+    /* Read the section string table.  */
+    if (elf_object_read(section_header[header.elf_header_section_string_index].elf_section_header_offset, section_string_table, allocation_size) != 0)
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: read failed on the section string table **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(6);
+    }
+
+    /* Allocate memory for the code section array.  */
+    allocation_size =     sizeof(CODE_SECTION_ENTRY)*header.elf_header_section_header_entries;
+    code_section_array =  malloc(allocation_size);
+
+    /* Determine if the memory allocation was successful.  */
+    if ((code_section_array == NULL) && (allocation_size != 0))
+    {
+
+        /* Print an error message out.  */
+        printf("**** Error: memory allocation failed for the code section array **** \n");
+
+        /* Close the files and release the ELF areas.  */
+        converter_cleanup();
+
+        return(5);
+    }
+
+	code_section_index =  0;
+
+    /* Print out the section header(s).  */
+    for (i = 0; i < header.elf_header_section_header_entries; i++)
+    {
+
+		/* Determine if this section is a code section and there is a size.  */
+		if ((section_header[i].elf_section_header_type == 1) && (section_header[i].elf_section_header_size))
+		{
+
+            /* Check for an-instruction area.  */
+            if ((section_header[i].elf_section_header_flags & 0x4) || (section_header[i].elf_section_header_flags & 0x2))
+			{
+                /* Determine if this new section overlaps with an existing section.  */
+				for (j = 0; j < code_section_index; j++)
+				{
+					/* Is there an overlap?  */
+					if ((section_header[i].elf_section_header_address >= code_section_array[j].code_section_address) &&
+						((section_header[i].elf_section_header_address+section_header[i].elf_section_header_size + section_header[i].elf_section_header_offset) < (code_section_array[j].code_section_address+code_section_array[j].code_section_size)))
+					{
+						/* New section is within a current section, just disregard it.  */
+						break;
+					}
+				}
+
+				/* Determine if we have an overlap.  */
+				if (j == code_section_index)
+				{
+
+				    /* Yes, we have a code section... save it!  */
+				    code_section_array[code_section_index].code_section_index =  i;
+				    code_section_array[code_section_index].code_section_address =  section_header[i].elf_section_header_address;
+				    code_section_array[code_section_index].code_section_size =     section_header[i].elf_section_header_size;
+
+				    /* Move to next code section.  */
+				    code_section_index++;
+				}
+			}
+		}
+	}
+
+	/* Check for no code sections.  */
+	if (code_section_index == 0)
+	{
+
+        /* Print an error message out.  */
+        printf("**** Error: No code sections found! **** \n");
+
+		fprintf(array_file, "unsigned char  module_code[] = {0x00};\n\n");
+
+		/* Close the files and release the ELF areas.  */
+		converter_cleanup();
+
+		return(4);
+ 	}
+
+	/* One or more code sections have been found... let's put them in the correct order by address.  */
+	i = 0;
+	while (i+1 < code_section_index)
+	{
+
+		/* Make the "ith" entry the lowest address.  */
+		j = i + 1;
+		do
+		{
+			/* Is there a new lowest address?  */
+			if (code_section_array[j].code_section_address < code_section_array[i].code_section_address)
+			{
+				/* Yes, swap them!  */
+				code_section_temp =  code_section_array[i];
+				code_section_array[i] =  code_section_array[j];
+				code_section_array[j] = code_section_temp;
+			}
+
+			/* Move the inner index.  */
+			j++;
+		} while (j < code_section_index);
+
+		/* Move top index.  */
+		i++;
+	}
+
+	/* Now print out the sections in a C array.  */
+	fprintf(array_file, "unsigned char  module_code[] = {\n\n");
+	fprintf(array_file, "/* Address                                            Contents                                        */\n\n");
+
+	address =  code_section_array[0].code_section_address;
+	column =   0;
+
+	for (i = 0; i < code_section_index; i++)
+	{
+
+		/* Determine if there is any fill characters between sections.  */
+		while (address < code_section_array[i].code_section_address)
+		{
+
+			/* Print out a character with a leading comma, except on the first character.  */
+			if (column == 0)
+				fprintf(array_file, "/* 0x%08lX */   0x00", address);
+			else
+  				fprintf(array_file, ", 0x00");
+
+			/* Move column forward.  */
+			column++;
+
+			/* Are we at the end of the column?  */
+			if (column >= 16)
+			{
+				fprintf(array_file, ",\n");
+				column =  0;
+			}
+
+			/* Move address forward.  */
+			address++;
+		}
+
+		/* Now allocate memory for the code section.  */
+		code_buffer =  malloc(code_section_array[i].code_section_size);
+
+		/* Determine if the memory allocation was successful.  */
+		if (code_buffer == NULL)
+		{
+
+			/* Print an error message out.  */
+			printf("**** Error: memory allocation failed for code section **** \n");
+
+			/* Close the files and release the ELF areas.  */
+			converter_cleanup();
+
+			return(5);
+		}
+
+		/* Read in the code area.  */
+		j =  code_section_array[i].code_section_index;
+		if (elf_object_read(section_header[j].elf_section_header_offset, code_buffer, code_section_array[i].code_section_size) != 0)
+		{
+
+			/* Print an error message out.  */
+			printf("**** Error: read failed on a code section **** \n");
+
+			/* Release the code section buffer, then close the files and release
+			   the ELF areas.  */
+			free(code_buffer);
+			converter_cleanup();
+
+			return(6);
+		}
+
+		/* Write out the contents of this program area.  */
+		size =  code_section_array[i].code_section_size;
+
+		j =  0;
+		k =  0;
+		while (size)
+		{
+
+			/* Print out a character with a leading comma, except on the first character.  */
+			if (column == 0)
+				fprintf(array_file, "/* 0x%08lX */   0x%02X", address, (unsigned int) code_buffer[j]);
+			else
+  				fprintf(array_file, ", 0x%02X", (unsigned int) code_buffer[j]);
+
+			/* Move column forward.  */
+			column++;
+
+			/* Are we at the end of the column?  */
+			if (column >= 16)
+			{
+
+				/* Is this the last byte of the image?  */
+				if ((size != 1) || (i+1 != code_section_index))
+				{
+					if (k == 0)
+					{
+						k = code_section_array[i].code_section_index;
+					    fprintf(array_file, ",      /* SECTION: %s  */\n", &section_string_table[section_header[k].elf_section_header_name]);
+					}
+					else
+  					    fprintf(array_file, ",\n");
+				}
+				column =  0;
+			}
+
+			/* Move address forward.  */
+			address++;
+
+			/* Decrement size.  */
+			size--;
+
+			/* Move index into buffer.  */
+			j++;
+		}
+
+		/* Release the code section buffer before the next section is read.  */
+		free(code_buffer);
+		code_buffer =  NULL;
+	}
+
+	/* Finally, finish the C array containing the module code.  */
+	fprintf(array_file, "};\n\n");
+
+	/* Close the files and release the ELF areas.  */
+	converter_cleanup();
+
+	return 0;
+}

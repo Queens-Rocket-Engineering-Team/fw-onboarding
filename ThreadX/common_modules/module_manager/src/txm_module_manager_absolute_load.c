@@ -1,0 +1,112 @@
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ * Copyright (c) 2026 Eclipse ThreadX contributors
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
+
+// Portions of this file were generated with AI assistance.
+
+
+/**************************************************************************/
+/**************************************************************************/
+/**                                                                       */
+/** ThreadX Component                                                     */
+/**                                                                       */
+/**   Module Manager                                                      */
+/**                                                                       */
+/**************************************************************************/
+/**************************************************************************/
+
+#define TX_SOURCE_CODE
+
+#include "tx_api.h"
+#include "txm_module.h"
+
+#ifndef TXM_MODULE_MANAGER_ABSOLUTE_LOAD_CALL_NOT_USED
+
+/* DEPRECATION NOTICE
+ * txm_module_manager_absolute_load() is deprecated. Do not use it in new code.
+ *
+ * WHY: an absolutely located module has its code and its data placed at two
+ * independent fixed addresses by the module's linker script. This service
+ * receives only the code address, and the module preamble carries the code and
+ * data sizes but not the data address. The module manager therefore has no way
+ * to determine where the module's data area is, and cannot describe it in the
+ * module instance. The affected fields are left empty by this wrapper.
+ *
+ * WHAT TO DO: replace calls with txm_module_manager_absolute_load_extended(),
+ * passing the module's data area address as the fourth argument. That address
+ * is the RAM segment start defined in the module's linker script.
+ *
+ * RISK: with the data area unknown, the module manager cannot tell whether an
+ * object, a thread control block, or the trace buffer resides in the module's
+ * data area, and a memory protection unit cannot be programmed to cover it.
+ * Modules that request memory protection are therefore rejected with
+ * TXM_MODULE_INVALID_PROPERTIES.
+ *
+ * Define TXM_MODULE_MANAGER_ABSOLUTE_LOAD_CALL_NOT_USED to remove this service
+ * and this message from the build.
+ */
+#pragma message("txm_module_manager_absolute_load() is deprecated. " \
+                "Use txm_module_manager_absolute_load_extended() and pass " \
+                "the module's data area address.")
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _txm_module_manager_absolute_load                   PORTABLE C      */
+/*                                                           6.5.2        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Andres Mlinar, Microsoft Corporation                                */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    DEPRECATED. Use _txm_module_manager_absolute_load_extended()        */
+/*    instead, passing the module's data area address. This wrapper       */
+/*    passes TX_NULL, which leaves the module instance's data area        */
+/*    description empty because the module manager cannot derive the      */
+/*    data area address of an absolutely located module. Modules that     */
+/*    request memory protection are rejected with                         */
+/*    TXM_MODULE_INVALID_PROPERTIES, because the memory protection        */
+/*    hardware cannot be programmed to cover an unknown data area.        */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    module_instance                   Module instance pointer           */
+/*    module_name                       Module name pointer               */
+/*    module_location                   Module code location              */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    status                            Completion status                 */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _txm_module_manager_absolute_load_extended                          */
+/*                                      Load the module                   */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application code                                                    */
+/*                                                                        */
+/**************************************************************************/
+UINT  _txm_module_manager_absolute_load(TXM_MODULE_INSTANCE *module_instance, CHAR *module_name, VOID *module_location)
+{
+
+UINT    status;
+
+
+    /* Call the extended service with an unknown data area location.  */
+    status =  _txm_module_manager_absolute_load_extended(module_instance, module_name, module_location, TX_NULL);
+
+    /* Return completion status.  */
+    return(status);
+}
+#endif

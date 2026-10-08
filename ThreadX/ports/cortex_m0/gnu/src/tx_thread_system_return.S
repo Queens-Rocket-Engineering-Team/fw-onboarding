@@ -1,0 +1,92 @@
+@/***************************************************************************
+@ * Copyright (c) 2024 Microsoft Corporation
+@ *
+@ * This program and the accompanying materials are made available under the
+@ * terms of the MIT License which is available at
+@ * https://opensource.org/licenses/MIT.
+@ *
+* SPDX-License-Identifier: MIT
+**************************************************************************/
+
+@ Portions of this file were generated with AI assistance.
+
+
+/**************************************************************************/
+
+@/**************************************************************************/
+@/**                                                                       */
+@/** ThreadX Component                                                     */
+@/**                                                                       */
+@/**   Thread                                                              */
+@/**                                                                       */
+@/**************************************************************************/
+@/**************************************************************************/
+
+#ifdef TX_INCLUDE_USER_DEFINE_FILE
+#include "tx_user.h"
+#endif
+
+@   Plain .text rather than a numbered subsection: with .text 32, clang places
+@   the constant pool for the LDR literals below outside the range a Thumb-1
+@   PC-relative load can reach. GNU as accepts either form.
+    .text
+    .align 4
+    .syntax unified
+@/**************************************************************************/
+@/*                                                                        */
+@/*  FUNCTION                                               RELEASE        */
+@/*                                                                        */
+@/*    _tx_thread_system_return                          Cortex-M0/GNU     */
+@/*                                                           6.2.1        */
+@/*  AUTHOR                                                                */
+@/*                                                                        */
+@/*    William E. Lamie, Microsoft Corporation                             */
+@/*                                                                        */
+@/*  DESCRIPTION                                                           */
+@/*                                                                        */
+@/*    This function is target processor specific.  It is used to transfer */
+@/*    control from a thread back to the ThreadX system.  Only a           */
+@/*    minimal context is saved since the compiler assumes temp registers  */
+@/*    are going to get slicked by a function call anyway.                 */
+@/*                                                                        */
+@/*  INPUT                                                                 */
+@/*                                                                        */
+@/*    None                                                                */
+@/*                                                                        */
+@/*  OUTPUT                                                                */
+@/*                                                                        */
+@/*    None                                                                */
+@/*                                                                        */
+@/*  CALLS                                                                 */
+@/*                                                                        */
+@/*    _tx_thread_schedule                   Thread scheduling loop        */
+@/*                                                                        */
+@/*  CALLED BY                                                             */
+@/*                                                                        */
+@/*    ThreadX components                                                  */
+@/*                                                                        */
+@/**************************************************************************/
+@/* VOID   _tx_thread_system_return(VOID)
+@{  */
+    .thumb_func
+    .global  _tx_thread_system_return
+_tx_thread_system_return:
+@
+@    /* Return to real scheduler via PendSV. Note that this routine is often
+@       replaced with in-line assembly in tx_port.h to improved performance.  */
+@
+    LDR     r0, =0x10000000                         @ Load PENDSVSET bit
+    LDR     r1, =0xE000ED04                         @ Load NVIC base
+    STR     r0, [r1]                                @ Set PENDSVBIT in ICSR
+    DSB     #0xF                                    @ Ensure memory access is complete
+    ISB     #0xF                                    @ Flush pipeline
+    MRS     r0, IPSR                                @ Pickup IPSR
+    CMP     r0, #0                                  @ Is it a thread returning?
+    BNE     _isr_context                            @ If ISR, skip interrupt enable
+    MRS     r1, PRIMASK                             @ Thread context returning, pickup PRIMASK
+    CPSIE   i                                       @ Enable interrupts
+    MSR     PRIMASK, r1                             @ Restore original interrupt posture
+    ISB     #0xF                                    @ Flush pipeline
+_isr_context:
+    BX      lr                                      @ Return to caller
+@/* }  */

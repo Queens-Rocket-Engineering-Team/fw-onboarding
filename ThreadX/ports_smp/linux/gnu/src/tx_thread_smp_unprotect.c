@@ -1,0 +1,143 @@
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ * Copyright (c) 2026-present Eclipse ThreadX contributors
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
+
+// Portions of this file were generated with AI assistance.
+
+
+/**************************************************************************/
+/**************************************************************************/
+/**                                                                       */
+/** ThreadX Component                                                     */
+/**                                                                       */
+/**   Thread                                                              */
+/**                                                                       */
+/**************************************************************************/
+/**************************************************************************/
+
+
+#define TX_SOURCE_CODE
+#define TX_THREAD_SMP_SOURCE_CODE
+
+
+/* Include necessary system files.  */
+
+#include "tx_api.h"
+#include "tx_thread.h"
+#include "tx_timer.h"
+
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _tx_thread_smp_unprotect                          SMP/Linux/GCC     */
+/*                                                           6.1          */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    William E. Lamie, Microsoft Corporation                             */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function releases previously obtained protection. The supplied */
+/*    previous interrupt posture is restored.                             */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    Previous interrupt posture                                          */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    pthread_self                                                        */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    ThreadX Source                                                      */
+/*                                                                        */
+/**************************************************************************/
+void  _tx_thread_smp_unprotect(UINT new_interrupt_posture)
+{
+
+UINT        core;
+pthread_t   current_thread_id;
+
+    /* Lock Linux mutex.  */
+    _tx_linux_mutex_obtain(&_tx_linux_mutex);
+
+    /* Pickup the current thread ID.  */
+    current_thread_id = pthread_self();
+
+    /* Pickup the current core.   */
+    core =  _tx_thread_smp_core_get();
+
+    /* Determine if this core owns the protection.  */
+    if (_tx_thread_smp_protection.tx_thread_smp_protect_core == core)
+    {
+
+        /* Yes, this core owns the protection.  */
+
+        /* Decrement the protection count.  */
+        _tx_thread_smp_protection.tx_thread_smp_protect_count--;
+
+        /* Is the protection still in force?  */
+        if (_tx_thread_smp_protection.tx_thread_smp_protect_count == 0)
+        {
+
+            /* Restore the global interrupt disable value.  */
+            _tx_linux_global_int_disabled_flag =  new_interrupt_posture;
+
+            /* Determine if the preemption disable flag is set.  */
+            if (_tx_thread_preempt_disable == 0)
+            {
+
+                /* Release the protection.  */
+
+                /* Indicate the protection is no longer in force.  */
+                _tx_thread_smp_protection.tx_thread_smp_protect_in_force =         TX_FALSE;
+                _tx_thread_smp_protection.tx_thread_smp_protect_thread =           TX_NULL;
+                _tx_thread_smp_protection.tx_thread_smp_protect_core =             0xFFFFFFFF;
+                _tx_thread_smp_protection.tx_thread_smp_protect_linux_thread_id =  0;
+
+                /* Debug entry.  */
+                _tx_linux_debug_entry_insert("UNPROTECT-keep", __FILE__, __LINE__);
+            }
+            else
+            {
+
+                /* Debug entry.  */
+                _tx_linux_debug_entry_insert("UNPROTECT-released", __FILE__, __LINE__);
+            }
+        }
+        else
+        {
+
+            /* Debug entry.  */
+            _tx_linux_debug_entry_insert("UNPROTECT-nested", __FILE__, __LINE__);
+        }
+
+    }
+
+    /* Release the critical section taken by the matching _tx_thread_smp_protect.
+       The protection and the critical section are separate counts, and this
+       release is owed whether or not the protection still names this core: the
+       protection can be cleared by another core while this one holds the
+       critical section it took.  The critical section is only handed back to
+       Linux when its nesting count reaches zero, so a release skipped here is
+       never made up and the mutex stays locked for the life of the process.  */
+    _tx_linux_mutex_release(&_tx_linux_mutex);
+
+    /* Release the critical section taken on entry.  */
+    _tx_linux_mutex_release(&_tx_linux_mutex);
+
+}

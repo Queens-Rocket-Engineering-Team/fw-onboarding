@@ -1,0 +1,36 @@
+.vscode/
+.settings/
+.metadata/
+.tmp/
+_deps/
+build*/
+Debug/
+CMakeFiles/
+CMakeScripts/
+CMakeLists.txt.user
+CMakeCache.txt
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+*.dep
+*.o
+*.axf
+*.map
+*.a
+*.htm
+
+
+# Local build artifacts
+.codex
+__pycache__/
+*.pyc
+
+# Keil uVision per-user state, regenerated when a project is opened.
+# The .uvprojx / .uvproj project files are the ones worth tracking.
+*.uvoptx
+*.uvopt
+*.uvgui
+*.uvgui.*

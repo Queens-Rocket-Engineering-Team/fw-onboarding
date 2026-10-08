@@ -1,0 +1,24 @@
+
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
+
+#ifndef RISCV_HWTIMER_H
+#define RISCV_HWTIMER_H
+
+#include <stdint.h>
+
+#define TICKNUM_PER_SECOND 	10000000UL
+#define TICKNUM_PER_TIMER	(TICKNUM_PER_SECOND / TX_TIMER_TICKS_PER_SECOND)
+
+int hwtimer_init(void);
+
+int hwtimer_handler(void);
+
+#endif

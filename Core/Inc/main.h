@@ -57,6 +57,20 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define FIRE_DROGUE_Pin GPIO_PIN_1
+#define FIRE_DROGUE_GPIO_Port GPIOA
+#define CONT_DROGUE_Pin GPIO_PIN_2
+#define CONT_DROGUE_GPIO_Port GPIOA
+#define FIRE_MAIN_Pin GPIO_PIN_3
+#define FIRE_MAIN_GPIO_Port GPIOA
+#define CONT_MAIN_Pin GPIO_PIN_4
+#define CONT_MAIN_GPIO_Port GPIOA
+#define CS_FL_Pin GPIO_PIN_12
+#define CS_FL_GPIO_Port GPIOB
+#define RESET_FL_Pin GPIO_PIN_11
+#define RESET_FL_GPIO_Port GPIOA
+#define LED_Pin GPIO_PIN_15
+#define LED_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

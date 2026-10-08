@@ -25,7 +25,7 @@ set(CMAKE_PROJECT_NAME fw-onboarding)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 # Core project settings
-project(${CMAKE_PROJECT_NAME} LANGUAGES C ASM)
+project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Enable CMake support for ASM and C languages
@@ -34,16 +34,8 @@ enable_language(C ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
-# Use the same Cortex-M3 ABI for the application, HAL, and kernel.
-add_compile_options(-mthumb -mfloat-abi=soft)
-target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -mthumb -mfloat-abi=soft)
-target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -mthumb -mfloat-abi=soft)
-
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
-
-# Board-specific ThreadX integration is maintained independently of CubeMX.
-add_subdirectory(ThreadX)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -73,16 +65,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
-)
-
-add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
-    BYPRODUCTS
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex
-        ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
-    COMMENT "Generating HEX and binary firmware images"
-    VERBATIM
 )
