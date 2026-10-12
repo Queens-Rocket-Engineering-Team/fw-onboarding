@@ -69,3 +69,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 # Include ThreadX RTOS support
 include(cmake/threadx.cmake)
+
+add_subdirectory(components)
+target_link_libraries(${CMAKE_PROJECT_NAME} components)
+
+# Flash target
+find_program(STM32_PROGRAMMER_CLI STM32_Programmer_CLI)
+if(STM32_PROGRAMMER_CLI)
+  add_custom_target(flash
+    COMMAND ${STM32_PROGRAMMER_CLI} -c port=SWD mode=Normal reset=SWrst
+            -w $<TARGET_FILE:${CMAKE_PROJECT_NAME}> -v -rst
+    DEPENDS ${CMAKE_PROJECT_NAME}
+    USES_TERMINAL)
+endif()
