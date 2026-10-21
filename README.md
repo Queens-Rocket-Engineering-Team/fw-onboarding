@@ -153,8 +153,6 @@ Finished the core task and want more? Pick any of these.
  
 **The board (STINGER V2.0)**
 
-\* Safety note: As this is just onboarding, we have no need to actually send commands to fire the drogue and main chute. Doing so if connected other Avionics hardware may have unintended concequences.
-
 <div align="center">
 
 | | |
@@ -164,7 +162,7 @@ Finished the core task and want more? Pick any of these.
 | IMU | MPU6050 (accelerometer + gyro) on I2C2 |
 | Serial output | USART1, 115200 baud |
 | LED | PA15 |
-| Pyro outputs | `FIRE_DROGUE` PA1, `FIRE_MAIN` PA3. **Don't use. See the safety note above.\*** |
+| Pyro outputs | `FIRE_DROGUE` PA1, `FIRE_MAIN` PA3. |
 
 </div>
  
@@ -177,5 +175,5 @@ Finished the core task and want more? Pick any of these.
 **Links**
  
 - [ThreadX docs](https://threadx.io/releases/6.5.1/threadx/main/chapter4.html): look up any `tx_` function here
-- [MS5611 datasheet](https://www.te.com/commerce/DocumentDelivery/DDEController?Action=srchrtrv&DocNm=MS5611-01BA03&DocType=Data%20Sheet&DocLang=English&DocFormat=pdf&PartCntxt=MS561101BA03-50)
-- [MPU6050 datasheet](https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf)
+- [MS5611 datasheet](https://www.hpinfotech.ro/MS5611-01BA03.pdf)
+- [MPU6050 datasheet](https://cdn.sparkfun.com/datasheets/Sensors/Accelerometers/RM-MPU-6000A.pdf)
