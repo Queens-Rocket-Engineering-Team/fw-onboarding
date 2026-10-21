@@ -10,6 +10,8 @@ target_include_directories(components PUBLIC
     mpu6050
 )
 
+target_compile_options(components PRIVATE ${PROJECT_WARNINGS})
+
 # The driver still uses HAL and ThreadX directly, so it needs their
 # headers and compile definitions (STM32F103xB, USE_HAL_DRIVER, ...).
 target_link_libraries(components PRIVATE

@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "name": "Debug (ST-Link): build, flash, run to main",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+                }
+            ],
+            "serverInterface": "SWD",
+            "serverRtos": {
+                "enabled": true,
+                "port": "60000",
+                "driver": "threadx",
+                "driverPort": "cortex_m3"
+            }
+        },
+        {
+            "type": "stlinkgdbtarget",
+            "request": "attach",
+            "name": "Attach (ST-Link): running target, no flash",
+            "cwd": "${workspaceFolder}",
+            "imagesAndSymbols": [
+                {
+                    "symbolFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+                }
+            ],
+            "serverRtos": {
+                "enabled": true,
+                "port": "60000",
+                "driver": "threadx",
+                "driverPort": "cortex_m3"
+            }
+        }
+    ]
+}

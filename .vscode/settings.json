@@ -6,10 +6,15 @@
     "cmake.preferredGenerators": [
         "Ninja"
     ],
+    // clangd is the language server; keep cpptools IntelliSense off so the two don't fight.
+    "C_Cpp.intelliSenseEngine": "disabled",
     "stm32cube-ide-clangd.path": "cube",
     "stm32cube-ide-clangd.arguments": [
         "starm-clangd",
-        "--query-driver=${env:CUBE_BUNDLE_PATH}/gnu-tools-for-stm32/14.3.1+st.2/bin/arm-none-eabi-gcc*",
-        "--query-driver=${env:CUBE_BUNDLE_PATH}/gnu-tools-for-stm32/14.3.1+st.2/bin/arm-none-eabi-g++*"
-    ]
+        "--query-driver=${env:CUBE_BUNDLE_PATH}/gnu-tools-for-stm32/*/bin/arm-none-eabi-gcc*",
+        "--query-driver=${env:CUBE_BUNDLE_PATH}/gnu-tools-for-stm32/*/bin/arm-none-eabi-g++*"
+    ],
+    // .clang-tidy checks as in-editor warnings, .clang-format for Format Document.
+    "stm32cube-ide-clangd.enableLinting": true,
+    "stm32cube-ide-clangd.enableFormatting": true
 }

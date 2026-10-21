@@ -67,11 +67,24 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
+# Extra warnings for our own code only (app/ and components/), on top of the
+# -Wall from the toolchain file. Not applied to HAL, CubeMX output or ThreadX.
+set(PROJECT_WARNINGS
+    -Wextra
+    -Wshadow
+    -Wundef
+    -Wformat=2
+    -Wdouble-promotion
+    -Wconversion
+)
+
 # Include ThreadX RTOS support
 include(cmake/threadx.cmake)
 
 add_subdirectory(components)
 target_link_libraries(${CMAKE_PROJECT_NAME} components)
+
+set_source_files_properties(app/app.c PROPERTIES COMPILE_OPTIONS "${PROJECT_WARNINGS}")
 
 # Flash target
 find_program(STM32_PROGRAMMER_CLI STM32_Programmer_CLI)

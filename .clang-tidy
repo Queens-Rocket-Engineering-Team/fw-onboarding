@@ -1,0 +1,22 @@
+# Static-analysis checks shown in the editor by clangd, for app/ and components/.
+# Vendor and generated code is excluded in .clangd.
+Checks: >
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  cert-err33-c,
+  cert-flp30-c,
+  cert-str34-c,
+  misc-redundant-expression,
+  misc-static-assert,
+  misc-unused-parameters,
+  performance-*,
+  -performance-no-int-to-ptr,
+  readability-braces-around-statements,
+  readability-inconsistent-declaration-parameter-name,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  readability-redundant-control-flow,
+  readability-redundant-declaration

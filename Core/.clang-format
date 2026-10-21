@@ -1,0 +1,3 @@
+# CubeMX regenerates these files; reformatting them only creates diff noise.
+DisableFormat: true
+SortIncludes: Never

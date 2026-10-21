@@ -1,0 +1,2 @@
+# Matches the style app/ and components/ are already written in.
+BasedOnStyle: LLVM
