@@ -23,7 +23,11 @@
 #include "main.h"  /* LED_Pin, LED_GPIO_Port from the CubeMX user label */
 #include "usart.h" /* huart1 */
 
+#include "altitude.h"
+
 #include "ms5611.h"
+
+#define BASE_SAMPLES 50
 
 #define IMU_STACK_BYTES 1024U
 #define IMU_PRIORITY 10U
@@ -50,6 +54,8 @@ static ULONG baro_stack[BARO_STACK_BYTES / sizeof(ULONG)];
 
 static ms5611_t baro;
 static mpu6050_t imu;
+
+float base_Pa, base_temp_K;
 
 static void dbg(const char *fmt, ...) {
   char buf[96];
@@ -129,6 +135,26 @@ static void update_barometer(ULONG input) {
         dbg("BARO: init failed: %s\r\n", ms5611_status_str(st));
     }
 
+    // Calculate base pressure and temeperature
+    for (uint16_t i = 0U; i < BASE_SAMPLES; i++) {
+        ms5611_sample_t sample;
+
+        tx_mutex_get(&i2c_mutex, TX_WAIT_FOREVER);
+        st = ms5611_read(&baro, &sample);
+        tx_mutex_put(&i2c_mutex);
+
+        if (st == MS5611_OK) {
+          float baro_pressurePa = sample.pressure_pa * 1.0;
+          float baro_tempK = (sample.temp_c100/100.0) + 273.15;
+
+          base_temp_K += baro_tempK;
+          base_temp_K += baro_pressurePa;
+        }
+        else {
+          dbg("BARO: read error: %s\r\n", ms5611_status_str(st));
+        }
+    }
+
     for (;;) {
       ms5611_sample_t sample;
 
@@ -137,10 +163,12 @@ static void update_barometer(ULONG input) {
       tx_mutex_put(&i2c_mutex);
       
       if (st == MS5611_OK) {
-         int32_t baro_pressurePa = sample.pressure_pa;
-         int32_t baro_tempC100 = sample.temp_c100;
+         float baro_pressurePa = sample.pressure_pa * 1.0;;
+         //float baro_temp_K = (sample.temp_c100/100.0) + 273.15;
 
-         dbg("BARO: pressure=%ld Pa, temp=%ld C100\r\n", (long)baro_pressurePa, (long)baro_tempC100);
+         //dbg("BARO: pressure=%ld Pa, temp=%ld C100\r\n", (long)baro_pressurePa, (long)baro_temp_K);
+         uint32_t altitude_cm = (uint32_t) calculate_altitude(baro_pressurePa, base_Pa, base_temp_K)*100;
+         printf("%d", altitude_cm);
       }
       else {
          dbg("BARO: read error: %s\r\n", ms5611_status_str(st));

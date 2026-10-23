@@ -1,3 +1,6 @@
+#ifndef ALTITUDE_H
+#define ALTITUDE_H
+
 #include <stdint.h>
 #include <tx_user.h>
 #include<math.h>
@@ -9,5 +12,7 @@
 
 
 
-static float calculate_altitude(const float pressure_Pa, const float base_pressure_Pa, const float base_temperature_K);
+float calculate_altitude(const float pressure_Pa, const float base_pressure_Pa, const float base_temperature_K);
+
+#endif
     
