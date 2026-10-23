@@ -118,7 +118,8 @@ static void heartbeat_entry(ULONG input) {
   }
 }
 
-static void update_barometer() {
+static void update_barometer(ULONG input) {
+    (void) input;
 
     tx_mutex_get(&i2c_mutex, TX_WAIT_FOREVER);
     ms5611_status_t st =ms5611_init(&baro, &hi2c2, BARO_I2C_ADDR, MS5611_OSR_4096);
