@@ -136,6 +136,8 @@ static void update_barometer(ULONG input) {
     }
 
     // Calculate base pressure and temeperature
+    int count = 0;
+
     for (uint16_t i = 0U; i < BASE_SAMPLES; i++) {
         ms5611_sample_t sample;
 
@@ -149,10 +151,20 @@ static void update_barometer(ULONG input) {
 
           base_temp_K += baro_tempK;
           base_temp_K += baro_pressurePa;
+
+          count++;
         }
         else {
           dbg("BARO: read error: %s\r\n", ms5611_status_str(st));
         }
+    }
+
+    if (count != 0) {
+      base_Pa/=(float)count;
+      base_temp_K/=(float)count;
+    }
+    else {
+      dbg("ERROR: no initial values set");
     }
 
     for (;;) {
