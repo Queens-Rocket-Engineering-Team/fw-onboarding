@@ -54,20 +54,23 @@ static ms5611_t baro; // Barometer (Pressure and Temperature)
 static mpu6050_t imu; // Inertial Measurement Unit (Gyroscope and Accelerometer).
 
 // Mutexed rocket state - DO NOT CHANGE VALUES UNDER MUTEX UNLESS MUTEX IS AQUIRED:
-static u_int8_t rocket_state;
+static uint8_t rocket_state;
 static TX_MUTEX rocket_state_mutex;
 
 // Mutexed current pressure:
-static ULONG pressure;
-static TX_MUTEX pressure_mutex;
+static LONG pressure;
+// static TX_MUTEX pressure_mutex;
 
 // Mutexed current temperature:
-static ULONG temperature;
-static TX_MUTEX temperature_mutex;
+static LONG temperature;
+// static TX_MUTEX temperature_mutex;
+
+// Other Mutexes
+static TX_MUTEX hal_transmit;
 
 // Initial values before launch:
-static initial_pressure;
-static initial_temperature;
+static LONG initial_pressure;
+static LONG initial_temperature;
 
 static void dbg(const char *fmt, ...) {
   char buf[96];
@@ -76,9 +79,11 @@ static void dbg(const char *fmt, ...) {
   int n = vsnprintf(buf, sizeof buf, fmt, ap);
   va_end(ap);
   if (n > 0) {
+    tx_mutex_get(&hal_transmit, TX_WAIT_FOREVER); // Only grab mutex exactly when needed (i.e. ready to transmit.)
     HAL_UART_Transmit(
         &huart1, (uint8_t *)buf,
         (uint16_t)((n < (int)sizeof buf) ? n : (int)sizeof buf - 1), 100U);
+    tx_mutex_put(&hal_transmit);
   }
 }
 
@@ -94,8 +99,9 @@ static void dbg(const char *fmt, ...) {
  * 
  * @return The calculated altitude.
  */
-static void calc_altitude(ULONG* p0, ULONG* t0, ULONG* p) {
-  return (t0 / 0.0065) * (1 - pow((p / p0), (0.190266)));
+static LONG calc_altitude(const LONG* p0, const LONG* t0, const LONG* p) {
+  // TODO: Test precision, change casting and/or order of operations if necessary.
+  return (LONG)((*t0 / 0.0065) * (1 - pow(((LONG)(*p / *p0)), (0.190266))));
 }
 
 // Thread Entries:
@@ -141,11 +147,17 @@ static void baro_entry(ULONG input) {
   }
 
   for (;;) {
-    ms5611_data_t data;
-    status = ms5611_read(&imu, &data);
+    ms5611_sample_t data;
+    status = ms5611_read(&baro, &data);
     if (status == MS5611_OK) {
-      dbg("Barometer: Pressure = %d; Temperature = %d\r\n", data.pressure_pa, s.temp_c100); // *** Test states? (If in testing, outputs these values, else will not include in code.)
-      
+      dbg("Barometer: Pressure = %d; Temperature = %d\r\n", data.pressure_pa, data.temp_c100); // *** Test states? (If in testing, outputs these values, else will not include in code.)
+      if (/*Initial pressure or temperature not assigned and rocket_state == 0*/) { // TODO: Complete. ***
+        initial_pressure = data.pressure_pa;
+        initial_temperature = data.temp_c100;
+      } else {
+        pressure = data.pressure_pa;
+        temperature = data.temp_c100;
+      }
     } else {
       dbg("Barometer: read error: %s\r\n", ms5611_status_str(status));
     }
@@ -165,8 +177,8 @@ static void altitude_entry(ULONG input) {
     // (temperature from time t = (A) ms, pressure from t = (A+10) ms. However, this is a small
     // enough interval to not really matter. Potential fix slows down system.)
     // Just reading data so unless above problem matters, no need to grab mutexes.
-    current_pressure = pressure;
-    altitude = calc_altitude(&initial_pressure, &initial_temperature, &current_pressure);
+    ULONG current_pressure = pressure;
+    ULONG altitude = calc_altitude(&initial_pressure, &initial_temperature, &current_pressure);
     
     dbg("Altitude: Altitude = %d", altitude);
 
@@ -187,9 +199,10 @@ void tx_application_define(void *first_unused_memory) {
   (void)first_unused_memory;
 
   // Create mutexes:
-  tx_mutex_create(&rocket_state_mutex, "Rocket state", TX_INHERIT) // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
-  tx_mutex_create(&pressure_mutex, "Pressure", TX_INHERIT) // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
-  tx_mutex_create(&temperature_mutex, "Temperature", TX_INHERIT) // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
+  tx_mutex_create(&rocket_state_mutex, "Rocket state", TX_INHERIT); // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
+  tx_mutex_create(&hal_transmit, "HAL Transmit", TX_NO_INHERIT);
+  // tx_mutex_create(&pressure_mutex, "Pressure", TX_INHERIT); // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
+  // tx_mutex_create(&temperature_mutex, "Temperature", TX_INHERIT); // *** Change to TX_NO_INHERIT if design does not need mutex priorities.
 
   // Create IMU read loop, Barometer read loop, and heartbeat threads:
   (void)tx_thread_create(&imu_thread, "IMU Read Loop", imu_entry, 0U, imu_stack,
