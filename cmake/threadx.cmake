@@ -21,6 +21,7 @@ set_target_properties(threadx PROPERTIES SOURCES "${_tx_srcs}")
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/app/tx_initialize_low_level.S
     ${CMAKE_SOURCE_DIR}/app/app.c
+    ${CMAKE_SOURCE_DIR}/app/altitude.c
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/app)
