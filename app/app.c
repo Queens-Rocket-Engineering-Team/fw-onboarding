@@ -103,10 +103,10 @@ static void imu_entry(ULONG input) {
     tx_mutex_put(&i2c_mutex);
 
     if (st == MPU6050_OK) {
-      dbg("IMU: ax=%d ay=%d az=%d temp=%d gx=%ld gy=%ld gz=%ld\r\n",
-          sample.accel_mg[0], sample.accel_mg[1], sample.accel_mg[2],
-          sample.temp_c100, (long)sample.gyro_mdps[0],
-          (long)sample.gyro_mdps[1], (long)sample.gyro_mdps[2]);
+      //dbg("IMU: ax=%d ay=%d az=%d temp=%d gx=%ld gy=%ld gz=%ld\r\n",
+          //sample.accel_mg[0], sample.accel_mg[1], sample.accel_mg[2],
+          //sample.temp_c100, (long)sample.gyro_mdps[0],
+          //(long)sample.gyro_mdps[1], (long)sample.gyro_mdps[2]);
     } else {
       dbg("IMU: read error: %s\r\n", mpu6050_status_str(st));
     }
@@ -135,6 +135,8 @@ static void update_barometer(ULONG input) {
         dbg("BARO: init failed: %s\r\n", ms5611_status_str(st));
     }
 
+    dbg("Baraometer ThreadX Running");
+
     // Calculate base pressure and temeperature
     int count = 0;
 
@@ -146,13 +148,15 @@ static void update_barometer(ULONG input) {
         tx_mutex_put(&i2c_mutex);
 
         if (st == MS5611_OK) {
-          float baro_pressurePa = sample.pressure_pa * 1.0;
-          float baro_tempK = (sample.temp_c100/100.0) + 273.15;
+          float baro_pressurePa = (float)sample.pressure_pa;
+          float baro_tempK = ((float)sample.temp_c100 / 100.0f) + 273.15f;
 
           base_temp_K += baro_tempK;
-          base_temp_K += baro_pressurePa;
+          base_Pa += baro_pressurePa;
 
           count++;
+
+          tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND * 0.01);
         }
         else {
           dbg("BARO: read error: %s\r\n", ms5611_status_str(st));
@@ -175,12 +179,14 @@ static void update_barometer(ULONG input) {
       tx_mutex_put(&i2c_mutex);
       
       if (st == MS5611_OK) {
-         float baro_pressurePa = sample.pressure_pa * 1.0;;
-         //float baro_temp_K = (sample.temp_c100/100.0) + 273.15;
+         float baro_pressurePa = sample.pressure_pa * 1.0;
+         float baro_temp_K = (sample.temp_c100/100.0) + 273.15;
 
-         //dbg("BARO: pressure=%ld Pa, temp=%ld C100\r\n", (long)baro_pressurePa, (long)baro_temp_K);
-         uint32_t altitude_cm = (uint32_t) calculate_altitude(baro_pressurePa, base_Pa, base_temp_K)*100;
-         printf("%d", altitude_cm);
+         dbg("BARO: pressure=%ld Pa, temp=%ld C100, Base_temp=%ld, Base_Pa=%ld\r\n", (long)baro_pressurePa, (long)baro_temp_K, (long)base_temp_K, (long)base_Pa);
+         uint32_t altitude_cm = (uint32_t) (calculate_altitude(baro_pressurePa, base_Pa, base_temp_K)*100);
+         //printf("%d", altitude_cm);
+         dbg("Altitude: %ld\r\n", (long)altitude_cm);
+         
       }
       else {
          dbg("BARO: read error: %s\r\n", ms5611_status_str(st));
