@@ -86,12 +86,24 @@ target_link_libraries(${CMAKE_PROJECT_NAME} components)
 
 set_source_files_properties(app/app.c PROPERTIES COMPILE_OPTIONS "${PROJECT_WARNINGS}")
 
-# Flash target
+# Flash target setup
 find_program(STM32_PROGRAMMER_CLI STM32_Programmer_CLI)
+
 if(STM32_PROGRAMMER_CLI)
+  # 1. Standard SWD Flash Target
   add_custom_target(flash
     COMMAND ${STM32_PROGRAMMER_CLI} -c port=SWD mode=Normal reset=SWrst
             -w $<TARGET_FILE:${CMAKE_PROJECT_NAME}> -v -rst
     DEPENDS ${CMAKE_PROJECT_NAME}
-    USES_TERMINAL)
+    USES_TERMINAL
+    COMMENT "Flashing via SWD...")
+
+  # 2. UART Flash Target
+  set(FLASH_COM_PORT "COM3" CACHE STRING "COM port for UART flashing")
+  add_custom_target(flash_uart
+    COMMAND ${STM32_PROGRAMMER_CLI} -c port=${FLASH_COM_PORT} br=115200
+            -w $<TARGET_FILE:${CMAKE_PROJECT_NAME}> 0x08000000 -v -g 0x08000000
+    DEPENDS ${CMAKE_PROJECT_NAME}
+    USES_TERMINAL
+    COMMENT "Flashing via UART (${FLASH_COM_PORT})... Make sure BOOT0 is HIGH!")
 endif()
