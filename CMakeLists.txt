@@ -84,7 +84,7 @@ include(cmake/threadx.cmake)
 add_subdirectory(components)
 target_link_libraries(${CMAKE_PROJECT_NAME} components)
 
-set_source_files_properties(app/app.c PROPERTIES COMPILE_OPTIONS "${PROJECT_WARNINGS}")
+set_source_files_properties(app/app.c app/altitude.c PROPERTIES COMPILE_OPTIONS "${PROJECT_WARNINGS}")
 
 # Flash target setup
 find_program(STM32_PROGRAMMER_CLI STM32_Programmer_CLI)
